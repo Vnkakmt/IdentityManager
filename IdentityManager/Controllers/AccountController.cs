@@ -25,8 +25,9 @@ namespace IdentityManager.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Register()
+        public async Task<IActionResult> Register(string returnurl=null)
         {
+            ViewData["ReturnUrl"] = returnurl;
             RegisterViewModel registerViewModel = new RegisterViewModel();
             return View(registerViewModel);
         }
@@ -34,8 +35,11 @@ namespace IdentityManager.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Register(RegisterViewModel model, string returnurl)
         {
+            ViewData["ReturnUrl"] = returnurl;
+            returnurl = returnurl ?? Url.Content("~/");
+            
             if(ModelState.IsValid)
             {
                 var user = new ApplicationUser { UserName = model.Email, Email = model.Email, Name = model.Name };
@@ -50,7 +54,7 @@ namespace IdentityManager.Controllers
                 {
                     //if user got created we want to sign them in and redirect to home page
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Index", "Home");
+                    return LocalRedirect(returnurl);
                 }
                 AddErros(result);
             }
@@ -58,6 +62,42 @@ namespace IdentityManager.Controllers
             return View(model);
         }
 
+
+        [HttpGet]
+        public IActionResult Login(string returnurl=null)
+        {
+            ViewData["ReturnUrl"] = returnurl;
+            return View();
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginViewModel model, string returnurl=null)
+        {
+            ViewData["ReturnUrl"] = returnurl;
+            returnurl = returnurl ?? Url.Content("~/");
+            if (ModelState.IsValid)
+            {
+                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure:true);
+                if(result.Succeeded)
+                {
+                    return LocalRedirect(returnurl);
+                }
+                if (result.IsLockedOut)
+                {
+                    return View("Lockout");
+                }
+
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    return View(model);
+                }
+            }
+
+            return View(model);
+        }
 
 
         [HttpPost]
