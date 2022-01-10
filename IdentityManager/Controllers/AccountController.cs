@@ -115,7 +115,6 @@ namespace IdentityManager.Controllers
         }
 
 
-
         [HttpGet]
         public IActionResult ForgotPassword()
         {
@@ -156,6 +155,51 @@ namespace IdentityManager.Controllers
         {
             return View();
         }
+
+
+        [HttpGet]
+        public IActionResult ResetPassword()
+        {
+            return View();
+        }
+
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ForgotPasswordViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (user == null)
+                {
+                    return RedirectToAction("ForgotPasswordConfirmation");
+                }
+
+                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var callbackurl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
+                //var detail = "Please reset your password by clicking here: <a href=\"" + callbackurl + "\">link</a>";
+                //_logger.LogInformation(detail);
+
+                await _emailSender.SendEmailAsync(model.Email, "Reset Password - Identity Manager",
+                    //"Please reset your password by clicking here: <a href=\""+ callbackurl + "\">link</a>");
+                    "<html><body>" + "<h1>Confirm your email</h1>" +
+                    $"<p>Hi {model.Email}," +
+                    $"<a href=\"{callbackurl}\"> please click this link to confirm your email...</a></p>" + "<body></html>");
+
+                return RedirectToAction("ForgotPasswordConfirmation");
+            }
+            return View(model);
+        }
+
+
+        [HttpGet]
+        public IActionResult ResetPasswordConfirmation()
+        {
+            return View();
+        }
+
+
 
 
         private void AddErros(IdentityResult result)
