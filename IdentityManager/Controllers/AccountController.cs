@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace IdentityManager.Controllers
@@ -58,6 +59,11 @@ namespace IdentityManager.Controllers
                
                 if(result.Succeeded)
                 {
+                    var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    var callbackurl = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
+
+                    await _emailSender.SendEmailAsync(model.Email, "Confirm your account - Identity Manager",
+                        "Please confirm your account by clicking here: <a href =\"" + callbackurl + "\">link</a>");
                     //if user got created we want to sign them in and redirect to home page
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return LocalRedirect(returnurl);
@@ -66,6 +72,22 @@ namespace IdentityManager.Controllers
             }
 
             return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ConfirmEmail(string userId, string code)
+        {
+            if(userId == null || code == null)
+            {
+                return View("Error");
+            }
+            var user = await _userManager.FindByIdAsync(userId);
+            if(user == null)
+            {
+                return View("Error");
+            }
+            var result = await _userManager.ConfirmEmailAsync(user, code);
+            return View(result.Succeeded ? "ConfirmEmail" : "Error");
         }
 
 
@@ -158,38 +180,33 @@ namespace IdentityManager.Controllers
 
 
         [HttpGet]
-        public IActionResult ResetPassword()
+        public IActionResult ResetPassword(string code=null)
         {
-            return View();
+            return code == null ? View("Error") : View();
         }
 
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResetPassword(ForgotPasswordViewModel model)
+        public async Task<IActionResult> ResetPassword(ResetpasswordViewModel model)
         {
             if (ModelState.IsValid)
             {
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null)
                 {
-                    return RedirectToAction("ForgotPasswordConfirmation");
+                    return RedirectToAction("ResetPasswordConfirmation");
                 }
 
-                var code = await _userManager.GeneratePasswordResetTokenAsync(user);
-                var callbackurl = Url.Action("ResetPassword", "Account", new { userId = user.Id, code = code }, protocol: HttpContext.Request.Scheme);
-                //var detail = "Please reset your password by clicking here: <a href=\"" + callbackurl + "\">link</a>";
-                //_logger.LogInformation(detail);
-
-                await _emailSender.SendEmailAsync(model.Email, "Reset Password - Identity Manager",
-                    //"Please reset your password by clicking here: <a href=\""+ callbackurl + "\">link</a>");
-                    "<html><body>" + "<h1>Confirm your email</h1>" +
-                    $"<p>Hi {model.Email}," +
-                    $"<a href=\"{callbackurl}\"> please click this link to confirm your email...</a></p>" + "<body></html>");
-
-                return RedirectToAction("ForgotPasswordConfirmation");
+                var result = await _userManager.ResetPasswordAsync(user, model.Code, model.Password);
+                if(result.Succeeded)
+                {
+                    return RedirectToAction("ResetPasswordConfirmation");
+                }
+                AddErros(result);
+                //return RedirectToAction("ForgotPasswordConfirmation");
             }
-            return View(model);
+            return View();
         }
 
 
@@ -199,7 +216,80 @@ namespace IdentityManager.Controllers
             return View();
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ExternalLogin(string provider, string returnurl = null)
+        {
+            var redirecturl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnurl });
+            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirecturl);
+            return Challenge(properties, provider);
+        }
 
+
+        [HttpGet]
+        public async Task<IActionResult> ExternalLoginCallback(string returnurl = null, string remoteError = null)
+        {
+           if(remoteError != null)
+            {
+                ModelState.AddModelError(string.Empty, $"Error from external provider: {remoteError}");
+                return View(nameof(Login));
+            }
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if(info == null)
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            //Sign in the user with this external login provider, if the user already has a login.
+            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+            if(result.Succeeded)
+            {
+                //update any authentication tokens
+                await _signInManager.UpdateExternalAuthenticationTokensAsync(info);
+                return LocalRedirect(returnurl);
+            }
+            else
+            {
+                //If the user does not have account, then we will ask the user to create an account.
+                ViewData["ReturnUrl"] = returnurl;
+                ViewData["ProviderDisplayName"] = info.ProviderDisplayName;
+                var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                var name = info.Principal.FindFirstValue(ClaimTypes.Name);
+                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = email, Name = name});
+
+
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnurl = null)
+        {
+            if(ModelState.IsValid)
+            {
+                var info = await _signInManager.GetExternalLoginInfoAsync();
+                if(info == null)
+                {
+                    return View("Error");
+                }
+
+                var user = new ApplicationUser { UserName = model.Email, Email = model.Name, Name = model.Name };
+                var result = await _userManager.CreateAsync(user);
+                if(result.Succeeded)
+                {
+                    result = await _userManager.AddLoginAsync(user, info);
+                    if(result.Succeeded)
+                    {
+                        await _signInManager.SignInAsync(user, isPersistent: false);
+                        await _signInManager.UpdateExternalAuthenticationTokensAsync(info);
+                        return LocalRedirect(returnurl);
+                    }
+                }
+                AddErros(result);
+            }
+            ViewData["ReturnUrl"] = returnurl;
+            return View(model);
+        }
 
 
         private void AddErros(IdentityResult result)
