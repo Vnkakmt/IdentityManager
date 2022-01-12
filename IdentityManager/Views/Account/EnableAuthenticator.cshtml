@@ -8,6 +8,10 @@
     @Model.Token
 </p>
 
+
+<div id="qrCode">
+
+</div>
 <form method="post">
     <input hidden asp-for="Token" />
     <div class="form-group">
@@ -15,3 +19,11 @@
     </div>
     <button type="submit" class="btn btn-primary">Submit</button>
 </form>
+
+
+@section Scripts{ 
+<script src="~/js/qrcode.js"></script>
+<script type="text/javascript">
+    new QRCode(document.getElementById("qrCode"), "@Model.QRCodeUrl");
+</script>
+}
