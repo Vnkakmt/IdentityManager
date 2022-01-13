@@ -36,11 +36,19 @@ namespace IdentityManager.Controllers
             return View();
         }
 
-        [Authorize]
+        [Authorize(Roles ="Admin")]
         public IActionResult Privacy()
         {
             return View();
         }
+
+
+        [HttpGet]
+        public IActionResult AccessDenied(string returnurl = null)
+        {
+            return View();
+        }
+
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
