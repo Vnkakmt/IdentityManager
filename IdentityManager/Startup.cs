@@ -50,6 +50,7 @@ namespace IdentityManager
                 option.AppSecret = "a23a0db42602d31006f8bc4135b8de95";
             });
             services.AddControllersWithViews();
+            services.AddRazorPages();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -77,6 +78,7 @@ namespace IdentityManager
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
+                endpoints.MapRazorPages();
             });
         }
     }
