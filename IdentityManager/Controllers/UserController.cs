@@ -1,4 +1,4 @@
-﻿using Identity.Data;
+﻿using IdentityManager.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -21,7 +21,7 @@ namespace IdentityManager.Controllers
 
         public IActionResult Index()
         {
-            var userList = _db.ApplicationUser.ToList();
+            var userList = _db.ApplicationUsers.ToList();
             var userRole = _db.UserRoles.ToList();
             var roles = _db.Roles.ToList();
             foreach(var user in userList)

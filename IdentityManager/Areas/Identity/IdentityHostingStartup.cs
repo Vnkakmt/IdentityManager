@@ -1,5 +1,5 @@
 using System;
-using Identity.Data;
+using IdentityManager.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
@@ -15,12 +15,7 @@ namespace IdentityManager.Areas.Identity
         public void Configure(IWebHostBuilder builder)
         {
             builder.ConfigureServices((context, services) => {
-                //services.AddDbContext<ApplicationDbContext>(options =>
-                //    options.UseSqlServer(
-                //        context.Configuration.GetConnectionString("ApplicationDbContextConnection")));
-
-                //services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                //    .AddEntityFrameworkStores<ApplicationDbContext>();
+                
             });
         }
     }
