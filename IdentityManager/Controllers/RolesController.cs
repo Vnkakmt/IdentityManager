@@ -70,7 +70,8 @@ namespace IdentityManager.Controllers
                 var objRoleFromDb = _db.Roles.FirstOrDefault(u => u.Id == roleObj.Id);
                 if(objRoleFromDb == null)
                 {
-                    TempData[SD.Error] = "Role not found";
+                    await _roleManager.CreateAsync(new IdentityRole() { Name = roleObj.Name });
+                    TempData[SD.Success] = $"Role not found, created new role :-  {roleObj.Name}";
                     return RedirectToAction(nameof(Index));
                 }
                 objRoleFromDb.Name = roleObj.Name;
@@ -79,6 +80,29 @@ namespace IdentityManager.Controllers
                 TempData[SD.Success] = "Role created successfully";
 
             }
+            return RedirectToAction(nameof(Index));
+        }
+
+
+        ///	
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var objFromDb = _db.Roles.FirstOrDefault(u => u.Id == id);
+            var userRolesForThisRole = _db.UserRoles.Where(u => u.RoleId == id).Count();
+            if (objFromDb == null)
+            {
+                TempData[SD.Error] = "Role not found";
+                return RedirectToAction(nameof(Index));
+            }
+            if (userRolesForThisRole > 0)
+            {
+                TempData[SD.Error] = "Cannot delete this role, since there are users assigned to this role.";
+                return RedirectToAction(nameof(Index));
+            }
+            await _roleManager.DeleteAsync(objFromDb);
+            TempData[SD.Success] = "Role delete successfully.";
             return RedirectToAction(nameof(Index));
         }
 

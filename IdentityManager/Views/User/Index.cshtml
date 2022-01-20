@@ -34,7 +34,36 @@
                         <td>
                             @item.Role
                         </td>
-                        <td></td>
+                        <td>
+                            <div class="text-center">
+                                <form asp-action="Delete" asp-route-userId="@item.Id">
+                                    <a asp-action="Edit" asp-route-userId="@item.Id" class="btn btn-info text-white" style="cursor:pointer">
+                                        Edit
+                                    </a>
+
+                                    @if (item.LockoutEnd == null || item.LockoutEnd < DateTime.Now)
+                                    {
+                                        //we want to show the option to unlock
+                                        <button asp-action="LockUnlock" asp-route-userId="@item.Id" class="btn btn-success text-white"
+                                                style="cursor:pointer">
+                                            <span>&nbsp;Lock &nbsp;</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        //we want to show the option to unlock user
+                                        <button asp-action="LockUnlock" asp-route-userId="@item.Id" class="btn btn-warning text-white"
+                                                style="cursor:pointer">
+                                            <span>&nbsp;UnLock &nbsp;</span>
+                                        </button>
+                                    }
+                                    <button type="submit" onclick="return confirm('Are you sure want to delete this?')"
+                                            class="btn btn-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                 }
                 </table>
