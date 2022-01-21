@@ -32,7 +32,7 @@ namespace IdentityManager
             services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
             services.AddIdentity<IdentityUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
-                .AddDefaultTokenProviders();
+                .AddDefaultTokenProviders().AddDefaultUI();
             services.AddTransient<IEmailSender, MailJetEmailSender>();
             services.Configure<IdentityOptions>(opt =>
             {
@@ -42,15 +42,22 @@ namespace IdentityManager
                 opt.Lockout.MaxFailedAccessAttempts = 5;
             });
 
-            services.ConfigureApplicationCookie(opt =>
-            {
-                opt.AccessDeniedPath = new Microsoft.AspNetCore.Http.PathString("/Home/Accessdenied");
-            });
+            //services.ConfigureApplicationCookie(opt =>
+            //{
+            //    opt.AccessDeniedPath = new Microsoft.AspNetCore.Http.PathString("/Home/Accessdenied");
+            //});
 
             services.AddAuthentication().AddFacebook(option =>
             {
                 option.AppId = "638660314019729";
                 option.AppSecret = "a23a0db42602d31006f8bc4135b8de95";
+            });
+
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("UserAndAdmin", policy => policy.RequireRole("User").RequireRole("Admin"));
             });
             services.AddControllersWithViews();
             services.AddRazorPages();
