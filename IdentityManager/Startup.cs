@@ -1,6 +1,8 @@
+using IdentityManager.Authorize;
 using IdentityManager.Data;
 using IdentityManager.Models;
 using IdentityManager.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -58,7 +60,21 @@ namespace IdentityManager
             {
                 options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
                 options.AddPolicy("UserAndAdmin", policy => policy.RequireRole("User").RequireRole("Admin"));
+                options.AddPolicy("AdminCreateAccess", policy => policy.RequireRole("Admin").RequireClaim("Create","True"));
+                options.AddPolicy("Admin_Create_Edit_DeleteAccess", policy => policy.RequireRole("Admin").RequireClaim("Create", "True")
+                .RequireClaim("Edit", "True")
+                .RequireClaim("Delete", "True"));
+
+                options.AddPolicy("Admin_Create_Edit_DeleteAccess_OR_SuperAdmin", policy => policy.RequireAssertion(context =>
+                AuthorizeAdminWithClaimsOrSuperAdmin(context)));
+                options.AddPolicy("OnlySuperAdminChecker", policy => policy.Requirements.Add(new OnlySuperAdminChecker()));
+                options.AddPolicy("AdminWithMoreThan1000Days", policy => policy.Requirements.Add(new AdminWithMoreThan1000DaysRequirement(1000)));
+                options.AddPolicy("FirstNameAuth", policy => policy.Requirements.Add(new FirstNameAuthRequirement("vinayak")));
             });
+            services.AddScoped<IAuthorizationHandler, AdminWithOver1000daysHandler>();
+            services.AddScoped<IAuthorizationHandler, FirstNameAuthHandler>();
+            services.AddScoped<INumberOfDaysForAccount, NumberOfDaysForAccount>();
+
             services.AddControllersWithViews();
             services.AddRazorPages();
         }
@@ -91,5 +107,16 @@ namespace IdentityManager
                 endpoints.MapRazorPages();
             });
         }
+
+
+        private bool AuthorizeAdminWithClaimsOrSuperAdmin(AuthorizationHandlerContext context)
+        {
+            return (context.User.IsInRole("Admin") && context.User.HasClaim(c => c.Type == "Create" && c.Value == "True")
+                         && context.User.HasClaim(c => c.Type == "Edit" && c.Value == "True")
+                         && context.User.HasClaim(c => c.Type == "Delete" && c.Value == "True")
+                    ) || context.User.IsInRole("SuperAdmin");
+        }
+
+
     }
 }

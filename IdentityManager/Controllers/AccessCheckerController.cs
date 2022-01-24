@@ -55,25 +55,39 @@ namespace IdentityManager.Controllers
             return View();
         }
 
+        [Authorize(Policy = "AdminCreateAccess")]
         //accessable by Admin who have claim of create to be true
         public IActionResult Admin_CreateAccess()
         {
             return View();
         }
 
+        [Authorize(Policy = "Admin_Create_Edit_DeleteAccess")]
         //accessable by Admin user with create, edit and delete (AND NOT OR)
         public IActionResult Admin_Create_Edit_DeleteAccess()
         {
             return View();
         }
 
+        [Authorize(Policy = "Admin_Create_Edit_DeleteAccess_OR_SuperAdmin")]
         //accessable by Admin user with create, edit and delete (AND NOT OR), OR if the user role is superAdmin
-        public IActionResult Admin_Create_Edit_DeleteAccess_SuperAdmin()
+        public IActionResult Admin_Create_Edit_DeleteAccess_OR_SuperAdmin()
+        {
+            return View();
+        }
+
+        [Authorize(Policy = "AdminWithMoreThan1000Days")]
+        public  IActionResult OnlyVinayak()
         {
             return View();
         }
 
 
+        [Authorize(Policy = "FirstNameAuth")]
+        public IActionResult FirstNameAuth()
+        {
+            return View();
+        }
 
     }
 }
